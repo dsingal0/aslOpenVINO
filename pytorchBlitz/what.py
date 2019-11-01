@@ -23,7 +23,7 @@ print(x_numpy)
 # pytorch and cuda
 if torch.cuda.is_available():
     device=torch.device("cuda")
-    y = torch.zeros(device=device)
+    y = torch.zeros(device=device, size=(5,3))
     x = x.to(device)
     z = x+y
     print(z.to("cpu",torch.double))
