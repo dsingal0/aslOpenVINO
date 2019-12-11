@@ -1,203 +1,105 @@
-import tensorflow as tf
-import numpy as npi
-import os
-from skimage.transform import resize
-from sklearn.model_selection import train_test_split
 import numpy as np
+import tensorflow as tf
+#import matplotlib.pyplot as plt
+#%matplotlib inline
+import os
 import cv2
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, Input, Add, DepthwiseConv2D, GlobalAveragePooling2D, BatchNormalization, LeakyReLU
-from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau
 
-batch_size = 64
-imageSize = 64
-target_dims = (imageSize, imageSize, 3)
-num_classes = 29
-train_len = 87000
-train_dir = "./asl_alphabet_train/asl_alphabet_train/"
+train_dir = "./asl_alphabet_train/asl_alphabet_train"
+eval_dir = "./asl_alphabet_test/asl_alphabet_test"
 
-print(tf.__version__)
+#Helper function to load images from given directories
+def load_images(directory):
+    images = []
+    labels = []
+    for idx, label in enumerate(uniq_labels):
+        for file in os.listdir(directory + "/" + label):
+            filepath = directory + "/" + label + "/" + file
+            image = cv2.resize(cv2.imread(filepath), (64, 64))
+            images.append(image)
+            labels.append(idx)
+    images = np.array(images)
+    labels = np.array(labels)
+    return(images, labels)
+import keras
 
+uniq_labels = sorted(os.listdir(train_dir))
+images, labels = load_images(directory = train_dir)
 
-def get_data(folder):
-    """
-    Load the data and labels from the given folder.
-    """
-    X = np.empty((train_len, imageSize, imageSize, 3), dtype=np.float32)
-    y = np.empty((train_len, ), dtype=np.int)
-    cnt = 0
-    for folderName in os.listdir(folder):
-        if not folderName.startswith('.'):
-            if folderName in ['A']:
-                label = 0
-            elif folderName in ['B']:
-                label = 1
-            elif folderName in ['C']:
-                label = 2
-            elif folderName in ['D']:
-                label = 3
-            elif folderName in ['E']:
-                label = 4
-            elif folderName in ['F']:
-                label = 5
-            elif folderName in ['G']:
-                label = 6
-            elif folderName in ['H']:
-                label = 7
-            elif folderName in ['I']:
-                label = 8
-            elif folderName in ['J']:
-                label = 9
-            elif folderName in ['K']:
-                label = 10
-            elif folderName in ['L']:
-                label = 11
-            elif folderName in ['M']:
-                label = 12
-            elif folderName in ['N']:
-                label = 13
-            elif folderName in ['O']:
-                label = 14
-            elif folderName in ['P']:
-                label = 15
-            elif folderName in ['Q']:
-                label = 16
-            elif folderName in ['R']:
-                label = 17
-            elif folderName in ['S']:
-                label = 18
-            elif folderName in ['T']:
-                label = 19
-            elif folderName in ['U']:
-                label = 20
-            elif folderName in ['V']:
-                label = 21
-            elif folderName in ['W']:
-                label = 22
-            elif folderName in ['X']:
-                label = 23
-            elif folderName in ['Y']:
-                label = 24
-            elif folderName in ['Z']:
-                label = 25
-            elif folderName in ['del']:
-                label = 26
-            elif folderName in ['nothing']:
-                label = 27
-            elif folderName in ['space']:
-                label = 28
-            else:
-                label = 29
-            for image_filename in os.listdir(folder + folderName):
-                img_file = cv2.imread(folder + folderName + '/' +
-                                      image_filename)
-                if img_file is not None:
-                    img_file = resize(img_file, (imageSize, imageSize, 3))
-                    img_arr = np.asarray(img_file).reshape(
-                        (-1, imageSize, imageSize, 3))
+if uniq_labels == sorted(os.listdir(eval_dir)):
+    X_eval, y_eval = load_images(directory = eval_dir)
 
-            X[cnt] = img_arr
-            y[cnt] = label
-            cnt += 1
-    return X, y
+from sklearn.model_selection import train_test_split
 
+X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size = 0.1, stratify = labels)
 
-X_train, y_train = get_data(train_dir)
+n = len(uniq_labels)
+train_n = len(X_train)
+test_n = len(X_test)
 
-X_train, X_test, y_train, y_test = train_test_split(X_train,
-                                                    y_train,
-                                                    test_size=0.1)
+print("Total number of symbols: ", n)
+print("Number of training images: " , train_n)
+print("Number of testing images: ", test_n)
 
-# Encode labels to hot vectors (ex : 2 -> [0,0,1,0,0,0,0,0,0,0])
-y_trainHot = to_categorical(y_train, num_classes=num_classes)
-y_testHot = to_categorical(y_test, num_classes=num_classes)
+eval_n = len(X_eval)
+print("Number of evaluation images: ", eval_n)
 
-X_train.shape, y_trainHot.shape, X_test.shape, y_testHot.shape
+#Helper function to print images
+def print_images(image_list):
+    n = int(len(image_list) / len(uniq_labels))
+    cols = 8
+    rows = 4
+    fig = plt.figure(figsize = (24, 12))
 
-train_image_generator = ImageDataGenerator(samplewise_center=True,
-                                           samplewise_std_normalization=True,
-                                           rotation_range=20,
-                                           width_shift_range=0.2,
-                                           height_shift_range=0.2,
-                                           horizontal_flip=True)
+    for i in range(len(uniq_labels)):
+        ax = plt.subplot(rows, cols, i + 1)
+        plt.imshow(image_list[int(n*i)])
+        plt.title(uniq_labels[i])
+        ax.title.set_fontsize(20)
+        ax.axis('off')
+    plt.show()
 
-val_image_generator = ImageDataGenerator(
-    samplewise_center=True,
-    samplewise_std_normalization=True,
-)
+y_train_in = y_train.argsort()
+y_train = y_train[y_train_in]
+X_train = X_train[y_train_in]
+y_test_in = y_test.argsort()
+y_test = y_test[y_test_in]
+X_test = X_test[y_test_in]
+y_train = keras.utils.to_categorical(y_train)
+y_test = keras.utils.to_categorical(y_test)
+y_eval = keras.utils.to_categorical(y_eval)
+print(y_train[0])
+print(len(y_train[0]))
+X_train = X_train.astype('float32')/255.0
+X_test = X_test.astype('float32')/255.0
+X_eval = X_eval.astype('float32')/255.0
 
-train_generator = train_image_generator.flow(x=X_train,
-                                             y=y_trainHot,
-                                             batch_size=batch_size,
-                                             shuffle=True)
-val_generator = val_image_generator.flow(x=X_test,
-                                         y=y_testHot,
-                                         batch_size=batch_size,
-                                         shuffle=False)
+from keras.layers import Conv2D, Dense, Dropout, Flatten
+from keras.layers import Flatten, Dense
+from keras.models import Sequential
 
-inputs = Input(shape=target_dims)
-net = Conv2D(32, kernel_size=3, strides=1, padding="same")(inputs)
-net = LeakyReLU()(net)
-""" net = Conv2D(32, kernel_size=3, strides=1, padding="same")(net)
-net = LeakyReLU()(net)
-    net = Conv2D(32, kernel_size=3, strides=2, padding="same")(net)
-net = LeakyReLU()(net)
-    net = Conv2D(32, kernel_size=3, strides=1, padding="same")(net)
-net = LeakyReLU()(net)
-    net = Conv2D(32, kernel_size=3, strides=1, padding="same")(net)
-net = LeakyReLU()(net)
-    net = Conv2D(32, kernel_size=3, strides=2, padding="same")(net)
-    net = LeakyReLU()(net) """
-shortcut = net
-net = DepthwiseConv2D(kernel_size=3,
-                      strides=1,
-                      padding='same',
-                      kernel_initializer='he_normal')(net)
-net = BatchNormalization(axis=3)(net)
-net = LeakyReLU()(net)
-net = Conv2D(filters=32,
-             kernel_size=1,
-             strides=1,
-             padding='same',
-             kernel_initializer='he_normal')(net)
-net = BatchNormalization(axis=3)(net)
-net = LeakyReLU()(net)
-net = DepthwiseConv2D(kernel_size=3,
-                      strides=1,
-                      padding='same',
-                      kernel_initializer='he_normal')(net)
-net = BatchNormalization(axis=3)(net)
-net = LeakyReLU()(net)
-net = Conv2D(filters=32,
-             kernel_size=1,
-             strides=1,
-             padding='same',
-             kernel_initializer='he_normal')(net)
-net = BatchNormalization(axis=3)(net)
-net = LeakyReLU()(net)
-net = Add()([net, shortcut])
-net = GlobalAveragePooling2D()(net)
-net = Dropout(0.2)(net)
-net = Dense(32, activation='relu')(net)
-outputs = Dense(num_classes, activation='softmax')(net)
-model = Model(inputs=inputs, outputs=outputs)
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=["accuracy"])
+model = Sequential()
+model.add(Conv2D(filters = 64, kernel_size = 5, padding = 'same', activation = 'relu', 
+                 input_shape = (64, 64, 3)))
+model.add(Conv2D(filters = 64, kernel_size = 5, padding = 'same', activation = 'relu'))
+model.add(MaxPooling2D(pool_size = (4, 4)))
+model.add(Dropout(0.5))
+model.add(Conv2D(filters = 128 , kernel_size = 5, padding = 'same', activation = 'relu'))
+model.add(Conv2D(filters = 128 , kernel_size = 5, padding = 'same', activation = 'relu'))
+model.add(MaxPooling2D(pool_size = (4, 4)))
+model.add(Dropout(0.5))
+model.add(Conv2D(filters = 256 , kernel_size = 5, padding = 'same', activation = 'relu'))
+model.add(Dropout(0.5))
+model.add(Flatten())
+model.add(Dense(29, activation='softmax'))
+
 model.summary()
+model.compile(optimizer = 'rmsprop', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+hist = model.fit(X_train, y_train, epochs = 5, batch_size = 64)
+score = model.evaluate(x = X_test, y = y_test, verbose = 0)
+print('Accuracy for test images:', round(score[1]*100, 3), '%')
+score = model.evaluate(x = X_eval, y = y_eval, verbose = 0)
+print('Accuracy for evaluation images:', round(score[1]*100, 3), '%')
 
-model.fit_generator(
-    train_generator,
-    epochs=30,
-    validation_data=val_generator,
-    steps_per_epoch=train_generator.__len__(),
-    validation_steps=val_generator.__len__(),
-)
-""" callbacks=[
-    # TensorBoard(log_dir='./logs/%s' % (start_time)),
-    # ModelCheckpoint('./models/%s.h5' % (start_time), monitor='val_acc', verbose=1, save_best_only=True, mode='auto'),
-    ReduceLROnPlateau(monitor='val_acc', factor=0.2, patience=5, verbose=1, mode='auto')
-    ] """
-model.save('aslSlimCNN.h5')
+y_eval_pred = model.predict(X_eval, batch_size = 64, verbose = 0)
+print(y_eval_pred)
