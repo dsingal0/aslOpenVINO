@@ -12,7 +12,7 @@ from tensorflow.keras.models import Sequential, load_model, Model
 from tensorflow.keras.utils import to_categorical
 train_dir = "./asl_alphabet_train/asl_alphabet_train"
 eval_dir = "./asl_alphabet_test/asl_alphabet_test"
-batch_size = 64
+batch_size = 32
 imageSize = 64
 target_dims = (64, 64, 3)
 num_classes = 29
@@ -128,7 +128,7 @@ def trainModel():
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=["accuracy"])
     tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(logdir, histogram_freq=1)
 
-    hist = model.fit(X_train, y_train, epochs=5, batch_size=64, callbacks=[tensorboard_callback])
+    hist = model.fit(X_train, y_train, epochs=5, batch_size=batch_size, callbacks=[tensorboard_callback])
     model.save('aslClassifier.h5')
     return model
 

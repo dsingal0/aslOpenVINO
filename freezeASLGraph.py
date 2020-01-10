@@ -6,7 +6,7 @@ import glob
 tensorflow.keras.backend.clear_session()
 
 save_pb_dir = './model'
-model_fname = glob.glob("aslBackup")[0]
+model_fname = glob.glob("aslClassifier*")[0]
 def freeze_graph(graph, session, output, save_pb_dir='.', save_pb_name='frozen_model.pb', save_pb_as_text=False):
     with graph.as_default():
         graphdef_inf = tensorflow.graph_util.remove_training_nodes(graph.as_graph_def())
