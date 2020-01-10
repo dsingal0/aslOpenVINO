@@ -131,3 +131,4 @@ dmypy.json
 # dataset
 asl_alphabet_test/
 asl_alphabet_train/
+logs/*
