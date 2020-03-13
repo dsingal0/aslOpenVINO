@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 # large files
-videos/*
-saved_model/*
-IR/*
+mobileNetv2/videos/*
+mobileNetv2/saved_model/*
+mobileNetv2/IR/*
