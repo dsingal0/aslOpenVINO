@@ -1,0 +1,5 @@
+python3 /opt/intel/openvino/deployment_tools/model_optimizer/mo_tf.py --input_model ~/aslOpenVINO/mobileNetv2/saved_model/frozen_model.pb --output_dir ~/aslOpenVINO/mobileNetv2/IR/FP32/ --scale 255 -b 1 --data_type FP32 --reverse_input_channels
+
+python3 /opt/intel/openvino/deployment_tools/tools/calibration_tool/calibrate.py --models /home/dsingal/aslOpenVINO/mobileNetv2/IR/FP32/frozen_model.xml --source /home/dsingal/Downloads/asl_alphabet_train/A/ -sm --output_dir /home/dsingal/aslOpenVINO/mobileNetv2/IR/I8/
+
+
